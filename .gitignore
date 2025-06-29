@@ -5,3 +5,24 @@ node_modules
 /generated/prisma
 
 /generated/prisma
+
+# Ignore Python cache
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+dist/
+
+# Env
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# VS Code settings (optional)
+.vscode/
