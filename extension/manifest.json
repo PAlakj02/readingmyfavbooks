@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "Intellect Tracker",
+  "version": "1.0",
+  "description": "Scrape and summarize articles and videos.",
+  "permissions": ["scripting", "activeTab"],
+  "host_permissions": ["<all_urls>"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/Read_tracker_icon.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}
