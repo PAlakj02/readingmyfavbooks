@@ -1,0 +1,41 @@
+# === Python / Backend ===
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.env
+.venv/
+venv/
+env/
+*.sqlite3
+
+# Logs
+*.log
+
+# Compiled code
+*.so
+
+# LLM/Model files (optional)
+*.gguf
+*.bin
+*.pth
+
+# Virtual environments
+backend/venv/
+.vscode/
+.idea/
+
+# Optional summaries or generated folders
+backend/summaries/
+
+# === Node/Frontend ===
+node_modules/
+dist/
+build/
+
+# Chrome Extension build (if any)
+*.zip
+
+# System Files
+.DS_Store
+Thumbs.db
