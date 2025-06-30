@@ -15,13 +15,16 @@ export default function Login({ setToken }) {
     });
 
     const data = await res.json();
-    if (data.token) {
-      localStorage.setItem('token', data.token);
-      setToken(data.token);
-      navigate('/dashboard');
-    } else {
-      alert(data.error || 'Login failed');
-    }
+  console.log("🧪 Login response:", data); // ADD THIS LINE
+
+if (data.token) {
+  localStorage.setItem('token', data.token);
+  setToken(data.token);
+  navigate('/dashboard');
+} else {
+  alert(data.error || 'Login failed');
+}
+
   };
 
   return (
