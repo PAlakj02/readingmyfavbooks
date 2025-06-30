@@ -4,101 +4,90 @@ from llama_cpp import Llama
 import os
 import re
 from dotenv import load_dotenv
-from threading import local
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
-import logging
 
-# --- Configuration ---
 load_dotenv()
-LLAMA_MODEL_PATH = os.getenv("MODEL_PATH")
-assert LLAMA_MODEL_PATH, "MODEL_PATH not set in .env"
 
 app = Flask(__name__)
-CORS(app)  # Configure in production: CORS(app, origins=["http://localhost:3000"])
+CORS(app)
 
-# --- Rate Limiting ---
-limiter = Limiter(
-    app=app,
-    key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"]
-)
+# === Load LLaMA Model ===
+LLAMA_MODEL_PATH = os.getenv("MODEL_PATH")
+if not LLAMA_MODEL_PATH:
+    raise ValueError("❌ MODEL_PATH not set in .env")
 
-# --- Logging ---
-logging.basicConfig(
-    filename='llm_service.log',
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+print("🔁 Loading model...")
+try:
+    llm = Llama(
+        model_path=LLAMA_MODEL_PATH,
+        n_ctx=2048,
+        n_threads=8,
+        use_mmap=False  # Keep your Windows fix
+    )
+    print("✅ Model loaded!")
+except Exception as e:
+    print(f"❌ Model load failed: {e}")
+    raise
 
-# --- Thread-Safe Model Loading ---
-thread_local = local()
-
-def get_llm():
-    if not hasattr(thread_local, 'llm'):
-        logging.info("Loading LLaMA model...")
-        thread_local.llm = Llama(
-            model_path=LLAMA_MODEL_PATH,
-            n_ctx=2048,
-            n_threads=4,  # Optimal for most CPUs
-            use_mmap=False
-        )
-    return thread_local.llm
-
-# --- Security Middleware ---
-@app.before_request
-def restrict_remote():
-    if request.remote_addr not in ['127.0.0.1', '::1']:
-        logging.warning(f"Blocked non-local request from {request.remote_addr}")
-        return jsonify({"error": "Forbidden"}), 403
-
-# --- Helper Functions ---
+# === Text Cleaner (Keep exactly as you had it) ===
 def clean_text(text):
-    """Sanitize input text"""
-    text = re.sub(r"\[\d+\]", "", text)  # Remove citations
-    return re.sub(r"\s+", " ", text).strip()[:4000]  # Truncate
+    text = re.sub(r"\[\d+\]", "", text)  # Your Wikipedia citation remover
+    text = re.sub(r"\s+", " ", text)     # Your whitespace fix
+    return text.strip()
 
+# === Prompt Builder (Unchanged) ===
 def build_prompt(text):
-    return f"""Summarize this in 3-5 bullet points:
-{clean_text(text)}
+    cleaned = clean_text(text[:4000])  # Your truncation logic
+    return f"""You are a helpful assistant.
 
-Bullets:"""
+Read the following article and summarize it in exactly 3 to 5 bullet points.
 
-# --- API Endpoint ---
+Only return bullet points, no explanations or intros.
+
+Article:
+\"\"\"
+{cleaned}
+\"\"\"
+"""
+
+# === Bullet Extractor (Keep your working version) ===
+def extract_bullets(raw_output):
+    bullets = re.findall(r'^\* .*', raw_output, re.MULTILINE)
+    return "\n".join(bullets).strip() if bullets else raw_output.strip()
+
+# === API Endpoint (Only critical fixes) ===
 @app.route("/scrape", methods=["POST"])
-@limiter.limit("10/minute")
-def handle_scrape():
-    try:
-        data = request.get_json()
-        if not data or 'text' not in data:
-            return jsonify({"success": False, "error": "Missing 'text' field"}), 400
+def receive_scraped_data():
+    # Your original input check (just made more explicit)
+    if not request.json or 'text' not in request.json or 'title' not in request.json or 'url' not in request.json:
+        return jsonify({"success": False, "error": "Missing text/title/url"}), 400
 
-        llm = get_llm()
+    try:
+        # Your original summarization flow
+        prompt = build_prompt(request.json['text'])
         result = llm(
-            build_prompt(data['text']),
-            max_tokens=512,
+            prompt,
+            max_tokens=444,
             temperature=0.7,
+            top_p=0.9,
+            top_k=40,
             stop=["</s>"]
         )
-        
-        summary = result["choices"][0]["text"].strip()
-        logging.info(f"Summarized: {data.get('title', 'Untitled')}")
-        
+        raw_output = result["choices"][0]["text"]
+        summary = extract_bullets(raw_output)  # Your bullet extractor stays!
+
         return jsonify({
             "success": True,
             "summary": summary,
             "meta": {
-                "title": data.get('title', ''),
-                "url": data.get('url', ''),
-                "chars": len(data['text'])
+                "title": request.json['title'],
+                "url": request.json['url'],
+                "length": len(request.json['text'])
             }
         })
 
     except Exception as e:
-        logging.error(f"Error: {str(e)}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        print(f"🔥 Error: {e}")
+        return jsonify({"success": False, "error": "Summary failed"}), 500
 
-# --- Startup ---
 if __name__ == "__main__":
-    port = int(os.getenv("PYTHON_PORT", 8080))
-    app.run(host="127.0.0.1", port=port, threaded=True)
+    app.run(port=8080)

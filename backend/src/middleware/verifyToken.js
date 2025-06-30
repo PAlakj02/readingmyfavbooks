@@ -1,10 +1,16 @@
 // src/middleware/verifyToken.js
 const jwt = require('jsonwebtoken');
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
+
+// Fail fast if JWT_SECRET is missing (critical for production)
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable not set!');
+}
 
 module.exports = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
+  // Check for Bearer token format
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ message: 'Unauthorized: No token provided' });
   }
@@ -13,9 +19,14 @@ module.exports = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded; // Makes req.user.id available
+    req.user = decoded; // Attach user data to request
     next();
   } catch (err) {
-    return res.status(403).json({ message: 'Invalid or expired token' });
+    console.error('JWT Verification Error:', err.message); // Debug aid
+    return res.status(403).json({ 
+      message: err.name === 'TokenExpiredError' 
+        ? 'Token expired' 
+        : 'Invalid token' 
+    });
   }
 };

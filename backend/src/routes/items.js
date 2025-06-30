@@ -1,41 +1,50 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
+const verifyToken = require('../middleware/verifyToken');
 
 const router = express.Router();
 const prisma = new PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecret';
 
-// ✅ Middleware to verify token
-function authenticateToken(req, res, next) {
-  const authHeader = req.headers['authorization'];
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Missing or invalid Authorization header' });
-  }
+// ✅ Get all items (with pagination)
+router.get('/', verifyToken, async (req, res) => {
+  const { page = 1, limit = 10 } = req.query;
 
-  const token = authHeader.split(' ')[1];
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.userId = decoded.id;
-    next();
-  } catch (err) {
-    console.error('JWT verification error:', err);
-    return res.status(403).json({ error: 'Invalid or expired token' });
-  }
-}
-
-// ✅ GET /api/items — Fetch items for the logged-in user
-router.get('/', authenticateToken, async (req, res) => {
   try {
     const items = await prisma.item.findMany({
-      where: { userId: req.userId },
+      where: { userId: req.user.id },
       orderBy: { createdAt: 'desc' },
+      take: Number(limit),
+      skip: (Number(page) - 1) * Number(limit),
+      select: { id: true, url: true, title: true, summary: true, createdAt: true } // Optimized payload
     });
 
-    res.json(items);  // No need to wrap in `{ items }` unless you want to
+    res.json(items);
   } catch (err) {
-    console.error('Error fetching items:', err);
+    console.error('Items fetch error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ✅ Add new item
+router.post('/', verifyToken, async (req, res) => {
+  const { url, title, summary } = req.body;
+
+  if (!url || !title) {
+    return res.status(400).json({ error: 'URL and title are required' });
+  }
+
+  try {
+    const item = await prisma.item.create({
+      data: {
+        url,
+        title,
+        summary: summary || '', // Handle optional summary
+        userId: req.user.id
+      }
+    });
+    res.json(item);
+  } catch (err) {
+    console.error('Item creation error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
