@@ -1,7 +1,8 @@
+// src/middleware/verifyToken.js
 const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
 
-const verifyToken = (req, res, next) => {
+module.exports = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -12,11 +13,9 @@ const verifyToken = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded; // { userId: ... }
+    req.user = decoded; // Makes req.user.id available
     next();
   } catch (err) {
-    return res.status(401).json({ message: 'Unauthorized: Invalid token' });
+    return res.status(403).json({ message: 'Invalid or expired token' });
   }
 };
-
-module.exports = verifyToken;
