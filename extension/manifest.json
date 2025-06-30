@@ -3,7 +3,7 @@
   "name": "Intellect Tracker",
   "version": "1.0",
   "description": "Scrape and summarize articles and videos.",
-  "permissions": ["scripting", "activeTab"],
+  "permissions": ["scripting", "activeTab", "storage", "tabs", "contextMenus", "notifications"],
   "host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "popup.html",
