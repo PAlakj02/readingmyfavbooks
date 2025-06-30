@@ -18,7 +18,7 @@ export default function Login({ setToken }) {
     if (data.token) {
       localStorage.setItem('token', data.token);
       setToken(data.token);
-      navigate('/');
+      navigate('/dashboard');
     } else {
       alert(data.error || 'Login failed');
     }

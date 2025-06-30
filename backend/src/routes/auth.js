@@ -47,6 +47,7 @@ router.post('/register', async (req, res) => {
 });
 // ✅ LOGIN Route
 router.post('/login', async (req, res) => {
+  console.log("Received login request:", req.body);  // <== Add this
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -77,6 +78,7 @@ router.post('/login', async (req, res) => {
 
 // ✅ GET /me - Protected route
 router.get('/me', async (req, res) => {
+  
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
