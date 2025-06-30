@@ -8,22 +8,24 @@ export default function Register({ setToken }) {
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    const res = await fetch("http://localhost:3000/api/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
-    });
+  e.preventDefault();
+  const res = await fetch("http://localhost:3000/api/auth/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, email, password }),
+  });
 
-    const data = await res.json();
-    if (data.token) {
-      localStorage.setItem("token", data.token);
-      setToken(data.token);
-      navigate("/");
-    } else {
-      alert(data.error || "Registration failed");
-    }
-  };
+  const data = await res.json();
+  console.log("📦 Register response:", data); // ✅ DEBUG LOG
+
+  if (data.token) {
+    localStorage.setItem("token", data.token);
+    setToken(data.token);
+    navigate("/");
+  } else {
+    alert(data.error || "Registration failed");
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-950">
