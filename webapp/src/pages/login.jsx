@@ -25,11 +25,32 @@ export default function Login({ setToken }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="p-4 flex flex-col gap-2 max-w-md mx-auto">
-      <h2 className="text-xl font-bold">Login</h2>
-      <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-      <input placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-      <button type="submit">Login</button>
-    </form>
+    <div className="min-h-screen flex items-center justify-center bg-gray-950 px-4">
+      <div className="w-full max-w-md bg-gray-900 text-white p-8 rounded-2xl shadow-2xl">
+        <h2 className="text-3xl font-extrabold mb-6 text-center">Login to Your Account</h2>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full px-4 py-2 rounded-lg bg-gray-800 placeholder-gray-400 text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full px-4 py-2 rounded-lg bg-gray-800 placeholder-gray-400 text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+          />
+          <button
+            type="submit"
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition duration-300"
+          >
+            Log In
+          </button>
+        </form>
+      </div>
+    </div>
   );
 }
