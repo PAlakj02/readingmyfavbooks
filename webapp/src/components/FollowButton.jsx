@@ -1,11 +1,14 @@
 import React, { useState } from "react";
+import { Check, Plus, Loader2 } from "lucide-react";
 
 const FollowButton = ({ userId, isFollowingInitial, token, onAuthRequired }) => {
   const [isFollowing, setIsFollowing] = useState(isFollowingInitial);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const handleFollowToggle = async () => {
     setLoading(true);
+    setError(null);
 
     try {
       let authToken = token;
@@ -20,7 +23,7 @@ const FollowButton = ({ userId, isFollowingInitial, token, onAuthRequired }) => 
         if (onAuthRequired) {
           onAuthRequired();
         } else {
-          alert("Please login to follow users.");
+          setError("Please login to follow users");
         }
         setLoading(false);
         return;
@@ -30,77 +33,77 @@ const FollowButton = ({ userId, isFollowingInitial, token, onAuthRequired }) => 
         method: isFollowing ? "DELETE" : "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: "Bearer " + authToken,
+          Authorization: `Bearer ${authToken}`,
         },
       });
 
       const data = await res.json();
-      if (data.success) {
-        setIsFollowing(!isFollowing);
-      } else {
-        console.error("Follow error:", data.error);
-        alert(data.error || "Could not update follow status.");
+      if (!res.ok) {
+        throw new Error(data.error || "Could not update follow status");
       }
+
+      setIsFollowing(!isFollowing);
     } catch (err) {
       console.error("Follow error:", err);
-      alert("Network error. Please try again.");
+      setError(err.message || "Network error. Please try again.");
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
-    <button
-      onClick={handleFollowToggle}
-      disabled={loading}
-      className={`group relative px-6 py-2.5 rounded-full font-semibold text-sm
-        transition-all duration-200 transform hover:scale-105 active:scale-95
-        focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900
-        disabled:cursor-not-allowed disabled:opacity-60 disabled:transform-none
-        ${isFollowing
-          ? `bg-gray-700 text-gray-300 border border-gray-600 
-             hover:bg-red-500 hover:text-white hover:border-red-500
-             focus:ring-red-500`
-          : `bg-gradient-to-r from-blue-500 to-blue-600 text-white border border-blue-500
-             hover:from-blue-600 hover:to-blue-700 hover:border-blue-600 hover:shadow-lg
-             focus:ring-blue-500`
-        }`}
-    >
-      {loading && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+    <div className="relative">
+      <button
+        onClick={handleFollowToggle}
+        disabled={loading}
+        className={`group relative px-5 py-2 rounded-full font-semibold text-sm
+          transition-all duration-200 hover:scale-105 active:scale-95
+          focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900
+          disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100
+          ${
+            isFollowing
+              ? `bg-gray-700 text-gray-300 border border-gray-600 
+                 hover:bg-red-500/90 hover:text-white hover:border-red-500
+                 focus:ring-red-500`
+              : `bg-gradient-to-r from-blue-500 to-blue-600 text-white border border-blue-500
+                 hover:from-blue-600 hover:to-blue-700 hover:border-blue-600 hover:shadow-md
+                 focus:ring-blue-500`
+          }`}
+        aria-label={isFollowing ? "Unfollow user" : "Follow user"}
+      >
+        <div className="flex items-center justify-center gap-2">
+          {loading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : isFollowing ? (
+            <>
+              <Check className="w-4 h-4 transition-transform group-hover:scale-110" />
+              <span className="group-hover:hidden">Following</span>
+              <span className="hidden group-hover:inline">Unfollow</span>
+            </>
+          ) : (
+            <>
+              <Plus className="w-4 h-4 transition-transform group-hover:scale-110" />
+              <span>Follow</span>
+            </>
+          )}
+        </div>
+      </button>
+
+      {error && (
+        <div className="absolute top-full mt-2 px-3 py-1.5 bg-red-500/10 text-red-400 text-xs rounded-lg animate-fade-in">
+          {error}
         </div>
       )}
-
-      <span className={`flex items-center space-x-2 ${loading ? 'opacity-0' : 'opacity-100'}`}>
-        {isFollowing ? (
-          <>
-            <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-            </svg>
-            <span className="group-hover:hidden">Following</span>
-            <span className="hidden group-hover:inline">Unfollow</span>
-          </>
-        ) : (
-          <>
-            <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            <span>Follow</span>
-          </>
-        )}
-      </span>
-    </button>
+    </div>
   );
 };
 
 export const FollowButtonWithUser = ({ user, token, onAuthRequired }) => {
   return (
-    <div className="flex items-center space-x-3 p-3 bg-gray-800 rounded-lg border border-gray-700">
-      <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-        <span className="text-white font-semibold text-sm">
-          {user.name?.charAt(0).toUpperCase() || 'U'}
-        </span>
+    <div className="flex items-center gap-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700/50 hover:bg-gray-800/70 transition-colors">
+      <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+        {user.name?.charAt(0).toUpperCase() || 'U'}
       </div>
 
       <div className="flex-1 min-w-0">
