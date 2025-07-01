@@ -9,40 +9,70 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 async function extractPageContent() {
   const url = window.location.href;
-  const title = document.title;
+  let title = document.title;
+  let text = "";
 
   try {
-   if (url.includes("youtube.com/watch")) {
-  // Try waiting for title or fallback after 3s
-  await waitForElement('meta[name="title"], h1.title', 3000);
+    if (url.includes("youtube.com/watch")) {
+      // Wait for YouTube elements to load
+      await waitForElement('#info-contents, #above-the-fold, ytd-watch-metadata', 5000);
 
-  const videoTitle = (
-    document.querySelector('h1.title')?.innerText ||
-    document.querySelector('meta[name="title"]')?.content ||
-    document.title
-  ).trim();
+      // Get video title with multiple fallbacks
+      title = (
+        document.querySelector('h1.title')?.innerText ||
+        document.querySelector('h1.ytd-watch-metadata')?.innerText ||
+        document.querySelector('#container h1')?.innerText ||
+        document.querySelector('meta[name="title"]')?.content ||
+        title
+      ).trim();
 
-  const channel = (
-    document.querySelector('#text-container yt-formatted-string')?.innerText ||
-    document.querySelector('ytd-channel-name')?.innerText ||
-    document.querySelector('link[itemprop="name"]')?.getAttribute('content') ||
-    "Unknown Channel"
-  ).trim();
+      // Get channel name with multiple fallbacks
+      const channel = (
+        document.querySelector('#channel-name a')?.innerText ||
+        document.querySelector('ytd-channel-name a')?.innerText ||
+        document.querySelector('yt-formatted-string.ytd-channel-name')?.innerText ||
+        document.querySelector('#upload-info a')?.innerText ||
+        "Unknown Channel"
+      ).trim();
 
-  const description = (
-    document.querySelector('#description')?.innerText ||
-    document.querySelector('meta[name="description"]')?.content ||
-    ""
-  ).trim();
+      // Try to expand description
+      const showMoreButton = document.querySelector('#expand');
+      if (showMoreButton && !showMoreButton.hidden) {
+        showMoreButton.click();
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
 
-  return {
-    success: true,
-    type: "youtube",
-    url:window.location.href,
-    title: videoTitle,
-    text: `🎬 Title: ${videoTitle}\n📺 Channel: ${channel}\n\n📝 Description:\n${description}`.slice(0, 4000)
-  };
-}
+      // Get description with multiple fallbacks
+      const description = (
+        document.querySelector('#description-inline-expander')?.innerText ||
+        document.querySelector('#description')?.innerText ||
+        document.querySelector('yt-formatted-string.content')?.innerText ||
+        ""
+      ).trim();
+
+      // Build the text content
+      text = [
+        `🎬 Title: ${title}`,
+        `📺 Channel: ${channel}`,
+        `\n📝 Description:\n${description}`
+      ].join('\n');
+
+      // Ensure we never return empty required fields
+      if (!title) title = "Untitled YouTube Video";
+      if (!text) text = "No description available";
+
+      return {
+        success: true,
+        type: "youtube",
+        url: url,
+        title: title.slice(0, 200),  // Ensure title isn't too long
+        text: text.slice(0, 4000)
+      };
+    }
+
+
+
+
 
 
     // ✅ ARTICLE handling
